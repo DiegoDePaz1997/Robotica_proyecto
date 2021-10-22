@@ -1,9 +1,31 @@
 import numpy as np
 
 
+#inversa de una matriz 4x4 como traspuesta
+def inv_4x4(m):
+    m = np.array(m)
+    m[:3, :3] = m[:3, :3].transpose()
+    m[:3, 3:]= -m[:3, :3]@m[:3, 3:]
+
+    return m
 
 
+if(__name__=='__main__'):   
+    mat = [[1, 2,  3,  4], 
+          [ 1, 2,  3,  5],
+          [ 1, 2,  3,  6],
+          [ 0, 0,  0,  1]]
 
+    b1 = 1
+    a2 = 1
+    a3 = 1
+    d6 = .1
+    s = inv_4x4(mat)
+ 
+    print(s)
+
+
+#el @ es para multiplicacion matricial
 
 
 
@@ -191,8 +213,8 @@ def Tz(theta, b): # b = eje z
 def DH(a, alpha, b, theta):
     radianes_o_grados('radianes')
     #en dos matrices juta lo que en la primera se logra en cuatro
-    #return Tz(theta, b)@Tx(alpha, a)
-    return traslacion((0,0,b))@Rz(theta)@Rx(alpha)@traslacion((a,0,0))
+    return Tz(theta, b)@Tx(alpha, a)
+    #return traslacion((0,0,b))@Rz(theta)@Rx(alpha)@traslacion((a,0,0))
 
 
 
@@ -208,8 +230,8 @@ def T_s(b1, a2, a3, d6, ang):
         (a3, 0      , 0 , ang[2]),   # A3
 
         (0, -np.pi/2, 0 , ang[3]),     # A4
-        (0, np.pi/2, 0 , ang[4]),     # A5
-        (0, 0       , d6, ang[5])     # A6
+        (0,  np.pi/2, 0 , ang[4]),     # A5
+        (0,  0      , d6, ang[5])     # A6
     )
     #genera las matrices 
     Ai = [DH(a, alpha, b, theta) for a, alpha, b, theta in tupla]
@@ -229,9 +251,7 @@ def T_s(b1, a2, a3, d6, ang):
         T6 = A1*A2*A3*A4*A5*A6
         '''        
 
-    lista_aux = np.array(lista_aux)
-    np.set_printoptions(suppress=True, precision=4)
-    return lista_aux
+    return np.array(lista_aux)
 
 
 
@@ -252,64 +272,79 @@ def cin_inversa(b1, a2, a3, d6, matriz):
          return 0
 
 
-    theta1pos = np.arctan2(Yc, Xc)
+    theta1_pos = np.arctan2(Yc, Xc)
 
     theta1_neg = np.arctan2(-Yc, -Xc)
 
     c3 = (Xc**2 +Yc**2 + (Zc - b1)**2 - a2**2 - a3**2)/(2*a2*a3)
     s3 = (1-c3**2)**.5 #dos soluciones
 
-    theta3_pos_pos = np.arctan2(s3,  c3)
-    theta3_pos_neg = np.arctan2(-s3, c3)
+    theta3_pos = np.arctan2(s3,  c3)
+    theta3_neg = np.arctan2(-s3, c3)
 
 
 
     beta = np.arctan2(Zc-b1, (Xc**2 + Yc**2)**.5)
 
-    gama_pos = np.arctan2( a3*np.sin(theta3_pos_pos),
+    gama_pos = np.arctan2( a3*np.sin(theta3_pos),
                            a2 + a3*c3)
 
-    gama_neg =  np.arctan2( a3*np.sin(theta3_pos_neg),
+    gama_neg =  np.arctan2( a3*np.sin(theta3_neg),
                             a2 + a3*c3)
 
-    theta2_pos_pos = beta - gama_pos
-    theta2_pos_neg = beta - gama_neg
+    theta2_pos = beta - gama_pos
+    theta2_neg = beta - gama_neg
 
     """otros valor de theta1"""
 
 
     lis = (
         #sol theta1
-        (theta1pos,theta2_pos_pos, theta3_pos_pos),
-         (theta1pos,theta2_pos_neg, theta3_pos_neg),
+        (theta1_pos,theta2_pos, theta3_pos),
+         (theta1_pos,theta2_neg, theta3_neg),
 
          #sol theta_pi
-         (theta1_neg,theta2_pos_pos, theta3_pos_pos),
-         (theta1_neg,theta2_pos_neg, theta3_pos_neg)
+         (theta1_neg,theta2_pos, theta3_pos),
+         (theta1_neg,theta2_neg, theta3_neg)
     )
-    lis = np.round(lis, 6)
-
-    return lis
 
 
+    ang456 = []
+    for i in range(4):
+        t = lis[i]
+    
+        A1 =  DH(0, np.pi/2,  b1, t[0])
+        A2 =  DH(a2,     0 ,  0, t[1])
+        A3 =  DH(a3,     0,   0, t[2])
+        T03 = inv_4x4(A1@A2@A3)
+        ang456.append(angulos(T03@matriz))
+    
+
+
+    array = np.array(
+    [ 
+            [theta1_pos, theta2_pos, theta3_pos] + ang456[0][0],
+            [theta1_pos, theta2_neg, theta3_neg] + ang456[1][0],
+            [theta1_neg, theta2_pos, theta3_pos] + ang456[2][0],
+            [theta1_neg, theta2_neg, theta3_neg] + ang456[3][0],
+
+            [theta1_pos, theta2_pos, theta3_pos] + ang456[0][1],
+            [theta1_pos, theta2_neg, theta3_neg] + ang456[1][1],
+            [theta1_neg, theta2_pos, theta3_pos] + ang456[2][1],
+            [theta1_neg, theta2_neg, theta3_neg] + ang456[3][1]
+
+]      
+    )
+    array = array.round(4)
 
 
 
-#el @ es para multiplicacion matricial
 
-if(__name__=='__main__'):   
-    mat = [[-0.5485,  0.7293,  0.4091,  0.6912], 
-            [ 0.7374, 0.1911,  0.6478,  1.3425],
-            [ 0.3943,  0.657,  -0.6426,  0.2432],
-            [ 0.,      0.,      0.,      1.    ]]
+    return array
 
-    b1 = 1
-    a2 = 1
-    a3 = 1
-    d6 = .1
-    s =cin_inversa(b1, a2, a3, d6, mat)
- 
-    print(s)
+
+
+
 
 
 
