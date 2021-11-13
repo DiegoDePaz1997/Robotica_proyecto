@@ -130,7 +130,14 @@ def angulos(matriz):  #ZYZ
     b = [phi_2, theta_2, psi_2]
     return [a, b]
 
-
+lista = [
+[0.2487,	0.8039,	-0.5403,	-0.0540],
+[0.1597,	0.5162,	0.8415,	0.0841],
+[0.9553,	-0.2955,	0,	0],
+[0,	0,	0,	1]
+]
+lista = np.array(lista)
+print(angulos(lista))
 
 #####################################################
 def R_ZYZ(angulos):
@@ -333,7 +340,7 @@ def cin_inversa(b1, a2, a3, d6, matriz):
             [theta1_neg, theta2_pos, theta3_pos] + ang456[2][1],
             [theta1_neg, theta2_neg, theta3_neg] + ang456[3][1]
 
-]      
+    ]      
     )
     array = array.round(4)
 
